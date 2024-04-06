@@ -1,0 +1,226 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHOOSE YOUR PIXEL!</title>
+<style>
+  /* Styles for the grid container */
+  #gridContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center items horizontally */
+  }
+
+  /* Styles for the grid */
+  #container {
+    display: grid;
+    grid-template-columns: repeat(64, 10px); /* Adjust pixel size as needed */
+    grid-template-rows: repeat(64, 10px); /* Adjust pixel size as needed */
+    gap: 1px; /* Adjust gap between pixels */
+    margin-bottom: 10px; /* Add margin below the grid */
+    position: relative; /* Ensure positioning context for absolute positioning */
+  }
+
+  .pixel {
+    width: 10px; /* Adjust pixel size as needed */
+    height: 10px; /* Adjust pixel size as needed */
+    border: 1px solid #ccc; /* Border for pixels */
+    cursor: pointer; /* Change cursor to pointer on hover */
+    background-color: black; /* Set initial background color to black */
+  }
+
+  /* Styles for color palette */
+  #colorPalette {
+    display: flex;
+    justify-content: center; /* Center items horizontally */
+    margin-top: 10px; /* Add space between grid and color palette */
+  }
+
+  .colorOption {
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+    margin: 5px;
+    cursor: pointer;
+  }
+
+  /* Style for selected color option */
+  .selected {
+    border: 2px solid #000; /* Example border */
+  }
+
+  /* Style for reset button */
+  #resetButton {
+    padding: 10px 20px;
+    background-color: #ff0000;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div id="gridContainer">
+  <div id="container">
+    <!-- Grid of pixels will be generated dynamically here -->
+  </div>
+
+  <div id="colorPalette">
+    <div class="colorOption selected" style="background-color: red;"></div>
+    <div class="colorOption" style="background-color: orange;"></div>
+    <div class="colorOption" style="background-color: yellow;"></div>
+    <div class="colorOption" style="background-color: green;"></div>
+    <div class="colorOption" style="background-color: blue;"></div>
+    <div class="colorOption" style="background-color: purple;"></div>
+    <div class="colorOption" style="background-color: white;"></div>
+    <div class="colorOption" style="background-color: black;"></div>
+  </div>
+
+  <button id="resetButton">Reset Pixels</button>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('container');
+    const colors = document.querySelectorAll('.colorOption');
+
+    let lastSelectedColorIndex = 3; // Default to green (index 3) if not found in local storage
+    let isDrawing = false; // Flag to indicate drawing mode
+
+    // Function to remove 'selected' class from all color options
+    function clearSelection() {
+      colors.forEach(color => {
+        color.classList.remove('selected');
+      });
+    }
+
+    // Create the grid of pixels
+    for (let i = 0; i < 64; i++) {
+      for (let j = 0; j < 64; j++) {
+        const pixel = document.createElement('div');
+        pixel.classList.add('pixel');
+        pixel.addEventListener('mousedown', function() {
+          isDrawing = true;
+          togglePixelColor(this);
+        });
+        pixel.addEventListener('mouseenter', function() {
+          if (isDrawing) {
+            togglePixelColor(this);
+          }
+        });
+        pixel.addEventListener('mouseup', function() {
+          isDrawing = false;
+        });
+        container.appendChild(pixel);
+      }
+    }
+
+    // Function to toggle pixel color
+    function togglePixelColor(pixel) {
+      // Get the selected color
+      const selectedColor = getComputedStyle(document.querySelector('.selected')).getPropertyValue('background-color');
+
+      if (!isDrawing) {
+        // Toggle pixel color
+        if (pixel.style.backgroundColor === selectedColor) {
+          // If the pixel color matches the selected color, turn it black
+          pixel.style.backgroundColor = 'black';
+        } else {
+          // Otherwise, set the pixel color to the selected color
+          pixel.style.backgroundColor = selectedColor;
+        }
+      } else {
+        // Set the pixel color to the selected color
+        pixel.style.backgroundColor = selectedColor;
+      }
+
+      // Store pixel colors and last selected color index in local storage
+      updateLocalStorage();
+    }
+
+    // Function to get the name of the color from its hex value
+    function getColorName(hex) {
+      const colorMap = {
+        'rgb(255, 0, 0)': 'red',
+        'rgb(255, 165, 0)': 'orange',
+        'rgb(255, 255, 0)': 'yellow',
+        'rgb(0, 128, 0)': 'green',
+        'rgb(0, 0, 255)': 'blue',
+        'rgb(128, 0, 128)': 'purple',
+        'rgb(255, 255, 255)': 'white',
+        'rgb(0, 0, 0)': 'black'
+      };
+      return colorMap[hex] || hex;
+    }
+
+    // Event listener for color options
+    colors.forEach((color, index) => {
+      color.addEventListener('click', function() {
+        // Remove 'selected' class from all color options
+        clearSelection();
+
+        // Add 'selected' class to the clicked color option
+        this.classList.add('selected');
+
+        // Change cursor to selected color
+        container.style.cursor = getComputedStyle(this).getPropertyValue('background-color');
+
+        // Update last selected color index
+        lastSelectedColorIndex = index;
+
+        // Store last selected color index in local storage
+        localStorage.setItem('lastSelectedColorIndex', lastSelectedColorIndex);
+      });
+    });
+
+    // Function to update local storage with current pixel colors and last selected color index
+    function updateLocalStorage() {
+      const pixels = container.querySelectorAll('.pixel');
+      const pixelColors = Array.from(pixels).map(pixel => pixel.style.backgroundColor);
+      localStorage.setItem('pixelColors', JSON.stringify(pixelColors));
+      localStorage.setItem('lastSelectedColorIndex', lastSelectedColorIndex);
+    }
+
+    // Function to restore pixel colors and last selected color index from local storage
+    function restoreFromLocalStorage() {
+      const savedColors = JSON.parse(localStorage.getItem('pixelColors'));
+      if (savedColors) {
+        const pixels = container.querySelectorAll('.pixel');
+        pixels.forEach((pixel, index) => {
+          pixel.style.backgroundColor = savedColors[index];
+        });
+      }
+
+      // Restore last selected color index
+      const savedLastSelectedColorIndex = localStorage.getItem('lastSelectedColorIndex');
+      if (savedLastSelectedColorIndex !== null) {
+        lastSelectedColorIndex = parseInt(savedLastSelectedColorIndex);
+        clearSelection(); // Clear previously selected color
+        colors[lastSelectedColorIndex].classList.add('selected'); // Select the last chosen color
+        container.style.cursor = getComputedStyle(colors[lastSelectedColorIndex]).getPropertyValue('background-color'); // Set cursor to the last chosen color
+      }
+    }
+
+    // Restore pixel colors and last selected color index from local storage on page load
+    restoreFromLocalStorage();
+
+    // Set the default selected color based on lastSelectedColorIndex, currently set to index=3 green.
+    colors[lastSelectedColorIndex].click();
+
+    // Event listener for reset button
+    const resetButton = document.getElementById('resetButton');
+    resetButton.addEventListener('click', function() {
+      const pixels = container.querySelectorAll('.pixel');
+      pixels.forEach(pixel => {
+        pixel.style.backgroundColor = 'black'; // Reset pixel color to black
+      });
+      updateLocalStorage(); // Update local storage after resetting
+    });
+  });
+</script>
+
+</body>
+</html>
